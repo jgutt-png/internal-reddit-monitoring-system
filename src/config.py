@@ -1,18 +1,8 @@
-"""Configuration management for Reddit automation."""
+"""Configuration management for Reddit monitoring."""
 
 import os
 from dataclasses import dataclass, field
 from typing import List
-
-
-@dataclass
-class RedditConfig:
-    """Reddit API configuration."""
-    client_id: str = field(default_factory=lambda: os.getenv("REDDIT_CLIENT_ID", ""))
-    client_secret: str = field(default_factory=lambda: os.getenv("REDDIT_CLIENT_SECRET", ""))
-    user_agent: str = field(default_factory=lambda: os.getenv("REDDIT_USER_AGENT", "RealEstateBot/1.0"))
-    username: str = field(default_factory=lambda: os.getenv("REDDIT_USERNAME", ""))
-    password: str = field(default_factory=lambda: os.getenv("REDDIT_PASSWORD", ""))
 
 
 @dataclass
@@ -47,9 +37,9 @@ class AWSConfig:
 class ScannerConfig:
     """Scanner behavior configuration."""
     scan_interval_minutes: int = 30
-    max_posts_per_subreddit: int = 25
-    min_relevance_score: float = 0.6
-    post_max_age_hours: int = 24
+    max_posts_per_search: int = 50
+    min_relevance_score: float = 0.5
+    request_delay_seconds: int = 2  # Delay between web requests
 
     # Target subreddits - Florida Wholesale Real Estate
     subreddits: List[str] = field(default_factory=lambda: [
@@ -74,7 +64,6 @@ class ScannerConfig:
 @dataclass
 class Config:
     """Main configuration container."""
-    reddit: RedditConfig = field(default_factory=RedditConfig)
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     slack: SlackConfig = field(default_factory=SlackConfig)
     aws: AWSConfig = field(default_factory=AWSConfig)

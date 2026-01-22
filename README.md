@@ -1,10 +1,10 @@
 # Reddit Monitoring System
 
-A Reddit monitoring bot that scans subreddits for posts matching configurable keywords and sends notifications to Slack for team review.
+A Reddit monitoring bot that scans for posts matching configurable keywords using web search and sends notifications to Slack for team review.
 
 ## Features
 
-- **Reddit Scanning**: Monitors configurable subreddits using PRAW (Python Reddit API Wrapper)
+- **Web Search Scanning**: Searches for Reddit posts using DuckDuckGo with `site:reddit.com` filtering
 - **Keyword Matching**: Filters posts based on customizable keyword categories with weighted scoring
 - **Slack Notifications**: Sends matching posts to Slack with post details and action buttons
 - **PostgreSQL Storage**: Tracks posts, review status, and scan history
@@ -15,20 +15,20 @@ A Reddit monitoring bot that scans subreddits for posts matching configurable ke
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  EventBridge    │────▶│  Lambda Scanner  │────▶│   PostgreSQL    │
-│  (Scheduled)    │     │  (PRAW)          │     │   (Aurora)      │
+│  (Scheduled)    │     │  (Web Search)    │     │   (Aurora)      │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
-                                │                         │
-                                ▼                         ▼
-                        ┌──────────────────┐     ┌─────────────────┐
-                        │   Slack Bot      │◀────│   Posts Table   │
-                        │  (Notifications) │     │                 │
-                        └──────────────────┘     └─────────────────┘
+                               │                         │
+                               ▼                         ▼
+                       ┌──────────────────┐     ┌─────────────────┐
+                       │   Slack Bot      │◀────│   Posts Table   │
+                       │  (Notifications) │     │                 │
+                       └──────────────────┘     └─────────────────┘
 ```
 
 ## How It Works
 
 1. **Scanner** runs on schedule (configurable, default: every 30 minutes)
-2. **Fetches posts** from configured subreddits via Reddit API
+2. **Searches** for Reddit posts using web search with configured keywords
 3. **Keyword matching** scores posts based on relevance
 4. **Slack notification** sent with post details and review buttons
 5. **Team reviews** posts directly in Slack
@@ -37,8 +37,8 @@ A Reddit monitoring bot that scans subreddits for posts matching configurable ke
 
 ```
 ├── src/
-│   ├── scanner/          # Reddit API client and monitoring
-│   │   ├── reddit_client.py
+│   ├── scanner/          # Web search client and monitoring
+│   │   ├── web_search_client.py
 │   │   ├── subreddit_monitor.py
 │   │   └── keyword_matcher.py
 │   ├── database/         # PostgreSQL connection and queries
@@ -55,7 +55,6 @@ A Reddit monitoring bot that scans subreddits for posts matching configurable ke
 
 - Python 3.11+
 - PostgreSQL database
-- Reddit API credentials (script type app)
 - Slack Bot Token
 
 ### Installation
@@ -75,12 +74,6 @@ A Reddit monitoring bot that scans subreddits for posts matching configurable ke
    python scripts/test_local.py
    ```
 
-### Reddit API Setup
-
-1. Go to https://www.reddit.com/prefs/apps
-2. Create a "script" type application
-3. Note your `client_id` and `client_secret`
-
 ### Slack Setup
 
 1. Create a Slack App at https://api.slack.com/apps
@@ -92,14 +85,14 @@ A Reddit monitoring bot that scans subreddits for posts matching configurable ke
 
 Edit `src/config.py` to customize:
 
-- **Subreddits**: Which subreddits to monitor
+- **Subreddits**: Which subreddits to focus searches on
 - **Keywords**: Keyword categories and phrases to match
 - **Scan interval**: How often to scan
 - **Minimum score**: Threshold for Slack notifications
 
 ## Rate Limits
 
-Reddit API allows 60 requests per minute with OAuth authentication. The scanner is designed to stay well within these limits.
+Web search has implicit rate limits. The scanner includes delays between requests (configurable, default: 2 seconds) to avoid being blocked.
 
 ## License
 

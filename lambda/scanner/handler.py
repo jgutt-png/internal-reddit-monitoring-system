@@ -31,10 +31,6 @@ def get_secrets() -> Dict[str, str]:
 def configure_environment(secrets: Dict[str, str]) -> None:
     """Set environment variables from secrets."""
     env_mappings = {
-        "REDDIT_CLIENT_ID": "reddit_client_id",
-        "REDDIT_CLIENT_SECRET": "reddit_client_secret",
-        "REDDIT_USERNAME": "reddit_username",
-        "REDDIT_PASSWORD": "reddit_password",
         "SLACK_BOT_TOKEN": "slack_bot_token",
         "SLACK_CHANNEL_ID": "slack_channel_id",
         "DB_HOST": "db_host",
