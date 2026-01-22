@@ -12,7 +12,7 @@ class MessageBuilder:
         Build a Slack message with blocks for an opportunity.
 
         Args:
-            opportunity: Opportunity dictionary with post data and analysis
+            opportunity: Opportunity dictionary with post data
 
         Returns:
             Slack message payload
@@ -27,8 +27,7 @@ class MessageBuilder:
         age_hours = opportunity.get("post_age_hours", 0)
         relevance_score = opportunity.get("relevance_score", 0)
         engagement_level = opportunity.get("engagement_potential", "medium")
-        suggested_response = opportunity.get("suggested_response", "")
-        ai_analysis = opportunity.get("ai_analysis", {})
+        matched_keywords = opportunity.get("matched_keywords", [])
 
         # Emoji for engagement level
         level_emoji = {
@@ -46,17 +45,20 @@ class MessageBuilder:
         else:
             score_indicator = f":red_circle: {score_pct}%"
 
+        # Format matched keywords
+        keyword_list = ", ".join([k.get("phrase", "") for k in matched_keywords[:5]]) if matched_keywords else "none"
+
         blocks = [
             # Header
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"{level_emoji} AcqAtlas Opportunity - r/{subreddit}",
+                    "text": f"{level_emoji} New Post - r/{subreddit}",
                     "emoji": True
                 }
             },
-            # Title and stats
+            # Title with link
             {
                 "type": "section",
                 "text": {
@@ -80,7 +82,7 @@ class MessageBuilder:
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f":arrow_up: {upvotes} upvotes  |  :speech_balloon: {comments} comments  |  :clock1: {age_hours:.1f}h ago  |  {score_indicator} relevance"
+                        "text": f":arrow_up: {upvotes}  |  :speech_balloon: {comments} comments  |  :clock1: {age_hours:.1f}h ago  |  {score_indicator} match"
                     }
                 ]
             },
@@ -90,96 +92,53 @@ class MessageBuilder:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Post Content:*\n>{body[:400]}{'...' if len(body) > 400 else ''}"
+                    "text": f"*Post:*\n>{body[:400]}{'...' if len(body) > 400 else ''}"
                 }
             },
-        ]
-
-        # Add AI analysis if available
-        if ai_analysis:
-            user_intent = ai_analysis.get("user_intent", "")
-            suggested_angle = ai_analysis.get("suggested_angle", "")
-            reasoning = ai_analysis.get("reasoning", "")
-
-            if user_intent or suggested_angle:
-                blocks.append({"type": "divider"})
-                blocks.append({
-                    "type": "section",
-                    "text": {
+            # Matched keywords
+            {
+                "type": "context",
+                "elements": [
+                    {
                         "type": "mrkdwn",
-                        "text": f"*:brain: AI Analysis:*\n• *Intent:* {user_intent}\n• *Angle:* {suggested_angle}"
+                        "text": f":mag: *Matched:* {keyword_list}"
                     }
-                })
-
-            # Red flags warning
-            red_flags = ai_analysis.get("red_flags", [])
-            if red_flags:
-                flags_text = ", ".join(red_flags)
-                blocks.append({
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": f":warning: *Red Flags:* {flags_text}"
-                        }
-                    ]
-                })
-
-        # Suggested response section
-        if suggested_response:
-            blocks.append({"type": "divider"})
-            blocks.append({
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*:memo: Suggested Response:*\n```{suggested_response[:1500]}```"
-                }
-            })
-
-        # Action buttons
-        blocks.append({"type": "divider"})
-        blocks.append({
-            "type": "actions",
-            "block_id": f"opportunity_actions_{reddit_id}",
-            "elements": [
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": ":white_check_mark: Approve & Copy",
-                        "emoji": True
+                ]
+            },
+            {"type": "divider"},
+            # Action buttons
+            {
+                "type": "actions",
+                "block_id": f"opportunity_actions_{reddit_id}",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": ":white_check_mark: Mark Reviewed",
+                            "emoji": True
+                        },
+                        "style": "primary",
+                        "action_id": "mark_reviewed",
+                        "value": reddit_id
                     },
-                    "style": "primary",
-                    "action_id": "approve_opportunity",
-                    "value": reddit_id
-                },
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": ":x: Reject",
-                        "emoji": True
-                    },
-                    "style": "danger",
-                    "action_id": "reject_opportunity",
-                    "value": reddit_id
-                },
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": ":pencil: Edit Response",
-                        "emoji": True
-                    },
-                    "action_id": "edit_response",
-                    "value": reddit_id
-                }
-            ]
-        })
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": ":x: Dismiss",
+                            "emoji": True
+                        },
+                        "action_id": "dismiss_opportunity",
+                        "value": reddit_id
+                    }
+                ]
+            }
+        ]
 
         return {
             "blocks": blocks,
-            "text": f"New opportunity in r/{subreddit}: {title}"  # Fallback text
+            "text": f"New post in r/{subreddit}: {title}"  # Fallback text
         }
 
     @staticmethod
@@ -191,9 +150,8 @@ class MessageBuilder:
     ) -> Dict[str, Any]:
         """Build a status update message."""
         status_emoji = {
-            "approved": ":white_check_mark:",
-            "rejected": ":x:",
-            "responded": ":rocket:",
+            "reviewed": ":white_check_mark:",
+            "dismissed": ":x:",
             "expired": ":hourglass:"
         }.get(status, ":question:")
 
@@ -217,15 +175,14 @@ class MessageBuilder:
         """Build a daily digest message."""
         total = stats.get("total", 0)
         pending = stats.get("pending", 0)
-        approved = stats.get("approved", 0)
-        responded = stats.get("responded", 0)
+        reviewed = stats.get("reviewed", 0)
 
         blocks = [
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": ":chart_with_upwards_trend: AcqAtlas Daily Reddit Digest",
+                    "text": ":chart_with_upwards_trend: Daily Reddit Digest",
                     "emoji": True
                 }
             },
@@ -233,9 +190,8 @@ class MessageBuilder:
                 "type": "section",
                 "fields": [
                     {"type": "mrkdwn", "text": f"*Total Found:*\n{total}"},
-                    {"type": "mrkdwn", "text": f"*Pending Review:*\n{pending}"},
-                    {"type": "mrkdwn", "text": f"*Approved:*\n{approved}"},
-                    {"type": "mrkdwn", "text": f"*Responded:*\n{responded}"}
+                    {"type": "mrkdwn", "text": f"*Pending:*\n{pending}"},
+                    {"type": "mrkdwn", "text": f"*Reviewed:*\n{reviewed}"}
                 ]
             },
             {"type": "divider"}
@@ -246,7 +202,7 @@ class MessageBuilder:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*:star2: Top Pending Opportunities:*"
+                    "text": "*:star2: Top Pending Posts:*"
                 }
             })
 
@@ -265,5 +221,5 @@ class MessageBuilder:
 
         return {
             "blocks": blocks,
-            "text": f"Daily digest: {total} opportunities found, {pending} pending"
+            "text": f"Daily digest: {total} posts found, {pending} pending"
         }

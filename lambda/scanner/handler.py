@@ -60,28 +60,24 @@ def scan_and_notify(event: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Import here to allow environment configuration first
     from src.scanner.subreddit_monitor import SubredditMonitor
-    from src.analyzer.relevance_scorer import RelevanceScorer
-    from src.database.queries import OpportunityQueries, ScanLogQueries
-    from src.database.connection import get_connection
+    from src.database.queries import OpportunityQueries
     from slack.bot import SlackBot
 
     # Initialize components
     monitor = SubredditMonitor()
-    scorer = RelevanceScorer()
     opp_queries = OpportunityQueries()
-    scan_queries = ScanLogQueries()
     slack_bot = SlackBot()
 
     # Get configuration from event or defaults
     subreddits = event.get("subreddits", None)  # None = use config defaults
-    min_score = event.get("min_score", 0.6)
+    min_score = event.get("min_score", 0.5)
     max_slack_posts = event.get("max_slack_posts", 10)
 
     results = {
         "subreddits_scanned": 0,
         "posts_scanned": 0,
         "opportunities_found": 0,
-        "opportunities_posted": 0,
+        "notifications_sent": 0,
         "errors": []
     }
 
@@ -106,29 +102,6 @@ def scan_and_notify(event: Dict[str, Any]) -> Dict[str, Any]:
                 logger.debug("opportunity_exists", reddit_id=opp["reddit_id"])
                 continue
 
-            # AI analysis for high-scoring posts
-            if opp.get("relevance_score", 0) >= min_score:
-                try:
-                    analysis = scorer.analyze_post(opp)
-
-                    # Update opportunity with AI analysis
-                    opp["ai_analysis"] = analysis
-                    opp["relevance_score"] = analysis.get("relevance_score", opp["relevance_score"])
-                    opp["engagement_potential"] = analysis.get("engagement_potential", opp["engagement_potential"])
-                    opp["suggested_response"] = analysis.get("draft_response", "")
-
-                    # Skip if AI says don't engage
-                    if not scorer.should_engage(analysis, min_score):
-                        logger.info(
-                            "skipping_opportunity",
-                            reddit_id=opp["reddit_id"],
-                            reason=analysis.get("reasoning", "AI recommendation")
-                        )
-                        continue
-
-                except Exception as e:
-                    logger.warning("ai_analysis_failed", reddit_id=opp["reddit_id"], error=str(e))
-
             # Save to database
             opp_id = opp_queries.create(opp)
 
@@ -148,7 +121,7 @@ def scan_and_notify(event: Dict[str, Any]) -> Dict[str, Any]:
             opp_queries.update_slack_ts(opp["id"], ts)
             posted_count += 1
 
-    results["opportunities_posted"] = posted_count
+    results["notifications_sent"] = posted_count
 
     # Expire old opportunities
     expired = opp_queries.expire_old_opportunities(hours=48)
@@ -207,8 +180,8 @@ if __name__ == "__main__":
 
     # Test event
     test_event = {
-        "subreddits": ["RealEstate"],  # Test with one subreddit
-        "min_score": 0.5,
+        "subreddits": ["wholesaling"],  # Test with one subreddit
+        "min_score": 0.4,
         "max_slack_posts": 3
     }
 

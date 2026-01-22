@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Test the Reddit automation locally."""
+"""Test the Reddit monitoring system locally."""
 
 import os
 import sys
-import json
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -36,7 +35,7 @@ def test_keyword_matching():
     test_cases = [
         ("Looking for off market deals in Florida, specifically Tampa area", "Florida wholesale deals?"),
         ("I have cash buyers but struggling to find motivated sellers in Miami", "Need deal flow in South Florida"),
-        ("Anyone know about AcqAtlas? Heard they have good leads", "AcqAtlas review"),
+        ("Anyone know good sources for off-market leads?", "Looking for deal sources"),
         ("Just closed my first wholesale deal! Assignment fee was $12k", "First deal success story"),
         ("Random unrelated post about cooking", "Best pasta recipe"),
     ]
@@ -61,10 +60,10 @@ def test_subreddit_scan():
     result = monitor.scan_subreddit("wholesaling", limit=5, min_score=0.3)
 
     print(f"   Posts scanned: {result.posts_scanned}")
-    print(f"   Opportunities found: {result.opportunities_found}")
+    print(f"   Matches found: {result.opportunities_found}")
 
     if result.opportunities:
-        print("\n   Top opportunity:")
+        print("\n   Top match:")
         opp = result.opportunities[0]
         print(f"   - Title: {opp['title'][:60]}...")
         print(f"   - Score: {opp['relevance_score']}")
@@ -72,42 +71,6 @@ def test_subreddit_scan():
 
     print("✅ Subreddit scan working!")
     return True
-
-
-def test_ai_analysis():
-    """Test AI analysis with Bedrock."""
-    print("\n🧠 Testing AI analysis (Bedrock)...")
-    from src.analyzer.relevance_scorer import RelevanceScorer
-
-    scorer = RelevanceScorer()
-
-    test_post = {
-        "reddit_id": "test123",
-        "subreddit": "wholesaling",
-        "title": "Struggling to find deals in Tampa - any advice?",
-        "body": "I've been driving for dollars for 3 months now in Tampa and can't seem to find any motivated sellers. I have cash buyers ready but no inventory. Skip tracing isn't working either. What am I doing wrong?",
-        "upvotes": 15,
-        "comment_count": 8,
-        "post_age_hours": 3.5,
-        "matched_keywords": [
-            {"phrase": "tampa"},
-            {"phrase": "motivated sellers"},
-            {"phrase": "driving for dollars"},
-            {"phrase": "skip tracing"}
-        ]
-    }
-
-    try:
-        analysis = scorer.analyze_post(test_post)
-        print(f"   Relevance score: {analysis.get('relevance_score')}")
-        print(f"   Engagement potential: {analysis.get('engagement_potential')}")
-        print(f"   Should engage: {analysis.get('should_engage')}")
-        print(f"   User intent: {analysis.get('user_intent', '')[:80]}...")
-        print("✅ AI analysis working!")
-        return True
-    except Exception as e:
-        print(f"⚠️  AI analysis error (Bedrock may not be configured): {e}")
-        return False
 
 
 def test_slack_connection():
@@ -143,7 +106,7 @@ def test_database_connection():
 def main():
     """Run all tests."""
     print("=" * 60)
-    print("🧪 AcqAtlas Reddit Automation - Local Tests")
+    print("🧪 Reddit Monitoring System - Local Tests")
     print("=" * 60)
 
     results = {
@@ -152,7 +115,6 @@ def main():
         "Subreddit Scan": test_subreddit_scan(),
         "Database": test_database_connection(),
         "Slack": test_slack_connection(),
-        "AI Analysis": test_ai_analysis(),
     }
 
     print("\n" + "=" * 60)
@@ -168,9 +130,9 @@ def main():
 
     print("\n")
     if all_passed:
-        print("🎉 All tests passed! Ready for deployment.")
+        print("🎉 All tests passed!")
     else:
-        print("⚠️  Some tests failed. Check configuration and try again.")
+        print("⚠️  Some tests failed. Check configuration.")
 
     return 0 if all_passed else 1
 

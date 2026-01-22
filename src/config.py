@@ -41,7 +41,6 @@ class SlackConfig:
 class AWSConfig:
     """AWS configuration."""
     region: str = field(default_factory=lambda: os.getenv("AWS_REGION", "us-east-2"))
-    bedrock_model_id: str = field(default_factory=lambda: os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0"))
 
 
 @dataclass
@@ -52,7 +51,7 @@ class ScannerConfig:
     min_relevance_score: float = 0.6
     post_max_age_hours: int = 24
 
-    # Target subreddits - Florida Wholesale Real Estate (AcqAtlas)
+    # Target subreddits - Florida Wholesale Real Estate
     subreddits: List[str] = field(default_factory=lambda: [
         # Primary - High intent wholesale/investing
         "WholesaleRealestate",
@@ -82,16 +81,13 @@ class Config:
     scanner: ScannerConfig = field(default_factory=ScannerConfig)
 
 
-# Keywords for matching - AcqAtlas Florida Wholesale Focus
+# Keywords for matching - Florida Wholesale Focus
 KEYWORDS = {
     "florida_off_market": [
         "florida off market", "FL wholesale", "florida wholesale deal",
         "miami off market", "florida wholesale", "off market florida",
         "florida deals", "FL off market", "south florida wholesale",
         "tampa wholesale", "orlando wholesale", "jacksonville wholesale"
-    ],
-    "brand_mentions": [
-        "acqatlas", "acquisition atlas", "acq atlas"
     ],
     "deal_types": [
         "motivated seller", "tax lien", "probate", "distressed property",

@@ -94,7 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_opportunities_reddit_id ON opportunities(reddit_i
 CREATE INDEX IF NOT EXISTS idx_scan_logs_subreddit ON scan_logs(subreddit);
 CREATE INDEX IF NOT EXISTS idx_scan_logs_started ON scan_logs(started_at DESC);
 
--- Insert default subreddits - AcqAtlas Florida Wholesale Focus
+-- Insert default subreddits - Florida Wholesale Focus
 INSERT INTO subreddits (name, is_active) VALUES
     -- Primary - High intent wholesale/investing
     ('WholesaleRealestate', true),
@@ -113,7 +113,7 @@ INSERT INTO subreddits (name, is_active) VALUES
     ('jacksonville', true)
 ON CONFLICT (name) DO NOTHING;
 
--- Insert default keywords - AcqAtlas Florida Wholesale Focus
+-- Insert default keywords - Florida Wholesale Focus
 INSERT INTO keywords (phrase, category, weight) VALUES
     -- Florida off-market (highest priority)
     ('florida off market', 'florida_off_market', 1.5),
@@ -122,9 +122,6 @@ INSERT INTO keywords (phrase, category, weight) VALUES
     ('miami off market', 'florida_off_market', 1.5),
     ('tampa wholesale', 'florida_off_market', 1.4),
     ('orlando wholesale', 'florida_off_market', 1.4),
-    -- Brand mentions (monitor)
-    ('acqatlas', 'brand', 2.0),
-    ('acquisition atlas', 'brand', 2.0),
     -- Deal types
     ('motivated seller', 'deal_types', 1.3),
     ('tax lien', 'deal_types', 1.3),
