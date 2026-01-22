@@ -1,9 +1,16 @@
 """Slack bot for Reddit opportunity notifications and interaction."""
 
+import ssl
 from typing import Dict, Any, Optional, List
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 import structlog
+
+try:
+    import certifi
+    SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    SSL_CONTEXT = None
 
 from src.config import SlackConfig, load_config
 from src.database.queries import OpportunityQueries
@@ -24,7 +31,10 @@ class SlackBot:
     def client(self) -> WebClient:
         """Lazy initialization of Slack client."""
         if self._client is None:
-            self._client = WebClient(token=self.config.bot_token)
+            if SSL_CONTEXT:
+                self._client = WebClient(token=self.config.bot_token, ssl=SSL_CONTEXT)
+            else:
+                self._client = WebClient(token=self.config.bot_token)
             logger.info("slack_client_initialized")
         return self._client
 
