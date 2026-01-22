@@ -94,14 +94,24 @@ def test_subreddit_scan():
 def test_slack_connection():
     """Test Slack connection."""
     print("\n💬 Testing Slack connection...")
-    from slack.bot import SlackBot
 
-    bot = SlackBot()
-    if bot.test_connection():
-        print("✅ Slack connection successful!")
-        return True
-    else:
-        print("⚠️  Slack connection failed (bot token may not be configured)")
+    # Check if Slack token is configured
+    slack_token = os.getenv("SLACK_BOT_TOKEN", "")
+    if not slack_token:
+        print("⏭️  Slack not configured (SLACK_BOT_TOKEN not set) - skipping")
+        return None  # Skip, not a failure
+
+    try:
+        from slack.bot import SlackBot
+        bot = SlackBot()
+        if bot.test_connection():
+            print("✅ Slack connection successful!")
+            return True
+        else:
+            print("⚠️  Slack connection failed")
+            return False
+    except Exception as e:
+        print(f"⚠️  Slack test error: {e}")
         return False
 
 
@@ -141,10 +151,14 @@ def main():
 
     all_passed = True
     for test_name, passed in results.items():
-        status = "✅" if passed else "❌"
-        print(f"   {status} {test_name}")
-        if not passed:
+        if passed is None:
+            status = "⏭️"  # Skipped
+        elif passed:
+            status = "✅"
+        else:
+            status = "❌"
             all_passed = False
+        print(f"   {status} {test_name}")
 
     print("\n")
     if all_passed:
