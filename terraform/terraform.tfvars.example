@@ -1,0 +1,28 @@
+# Example Terraform Variables
+# Copy this to terraform.tfvars and fill in your values
+
+# AWS
+aws_region  = "us-east-2"
+environment = "prod"
+
+# Database
+db_name     = "reddit_automation"
+db_username = "reddit_admin"
+db_password = "YOUR_SECURE_PASSWORD_HERE"
+
+# Reddit API (get from https://www.reddit.com/prefs/apps)
+reddit_client_id     = "YOUR_CLIENT_ID"
+reddit_client_secret = "YOUR_CLIENT_SECRET"
+reddit_username      = ""  # Optional, leave empty for read-only
+reddit_password      = ""  # Optional
+
+# Slack (get from https://api.slack.com/apps)
+slack_bot_token      = "xoxb-YOUR-BOT-TOKEN"
+slack_channel_id     = "C0XXXXXXXXX"  # Channel ID, not name
+slack_signing_secret = "YOUR_SIGNING_SECRET"
+
+# Scanner settings
+scan_interval_minutes = 30
+min_relevance_score   = 0.6
+lambda_memory_size    = 512
+lambda_timeout        = 300
