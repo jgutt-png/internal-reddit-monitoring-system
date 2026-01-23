@@ -142,9 +142,13 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     logger.info("lambda_invoked", event_type=event.get("source", "manual"))
 
     try:
-        # Load secrets and configure environment
-        secrets = get_secrets()
-        configure_environment(secrets)
+        # Check if using Secrets Manager or environment variables
+        use_secrets = os.environ.get("USE_SECRETS_MANAGER", "false").lower() == "true"
+
+        if use_secrets:
+            secrets = get_secrets()
+            configure_environment(secrets)
+        # Otherwise, environment variables are already set
 
         # Run the scan
         results = scan_and_notify(event)

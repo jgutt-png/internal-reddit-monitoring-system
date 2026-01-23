@@ -10,6 +10,9 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
+# Flag to use stealth browser if JSON API is blocked
+USE_STEALTH_BROWSER = True
+
 # User agents to rotate
 USER_AGENTS = [
     "Mozilla/5.0 (compatible; RedditMonitor/1.0)",
@@ -287,7 +290,8 @@ def search_reddit_posts(
     keywords: List[str],
     subreddits: List[str] = None,
     max_results: int = 20,
-    fetch_details: bool = False
+    fetch_details: bool = False,
+    use_stealth: bool = None
 ) -> List[Dict[str, Any]]:
     """
     Convenience function to search Reddit posts.
@@ -297,17 +301,34 @@ def search_reddit_posts(
         subreddits: Optional subreddits to limit search
         max_results: Maximum results
         fetch_details: Whether to fetch full post details (slower)
+        use_stealth: Force stealth browser (None = auto-detect)
 
     Returns:
         List of post dictionaries
     """
-    client = WebSearchClient()
-    results = client.search_reddit(keywords, subreddits, max_results=max_results)
+    # Try JSON API first
+    if use_stealth is not True:
+        client = WebSearchClient()
+        results = client.search_reddit(keywords, subreddits, max_results=max_results)
 
-    if fetch_details:
-        for i, post in enumerate(results):
-            details = client.fetch_post_details(post["permalink"])
-            if details:
-                results[i].update(details)
+        # If we got results, use them
+        if results:
+            if fetch_details:
+                for i, post in enumerate(results):
+                    details = client.fetch_post_details(post["permalink"])
+                    if details:
+                        results[i].update(details)
+            return results
 
-    return results
+    # Fall back to stealth browser if enabled and JSON API returned nothing
+    if USE_STEALTH_BROWSER or use_stealth is True:
+        try:
+            from .stealth_browser import search_reddit_posts as stealth_search
+            logger.info("using_stealth_browser", reason="json_api_blocked_or_empty")
+            return stealth_search(keywords, subreddits, max_results)
+        except ImportError as e:
+            logger.warning("stealth_browser_unavailable", error=str(e))
+        except Exception as e:
+            logger.error("stealth_browser_error", error=str(e))
+
+    return []

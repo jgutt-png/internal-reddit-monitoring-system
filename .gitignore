@@ -43,3 +43,6 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+deploy/
+reddit-monitor-lambda.zip
+*.pem
